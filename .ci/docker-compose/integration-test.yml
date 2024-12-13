@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  nats-1:
+    image: nats:alpine
+    healthcheck:
+      test: echo $$(wget --server-response http://127.0.0.1:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    hostname: nats-1
+    ports:
+      - "4222:4222"
+    command:
+      - "--js"
+      - "--server_name"
+      - "natsapi"
+    networks:
+      - integration-test
+
+  #  nats-1:
+  #    image: nats:alpine
+  #    healthcheck:
+  #      test: echo $$(wget --server-response http://127.0.0.1:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
+  #      interval: 20s
+  #      timeout: 5s
+  #      retries: 5
+  #      start_period: 40s
+  #    hostname: nats-1
+  #    ports:
+  #      - "4222:4222"
+  #    command: "--cluster_name nats-cluster --cluster nats://0.0.0.0:6222 --routes=nats://nats-2:6222,nats://nats-3:6222 --server_name=nats-1 --http_port 8222 --js "
+  #    networks:
+  #      - integration-test
+  #
+  #  nats-2:
+  #    image: nats:alpine
+  #    healthcheck:
+  #      test: echo $$(wget --server-response http://127.0.0.1:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
+  #      interval: 20s
+  #      timeout: 5s
+  #      retries: 5
+  #      start_period: 40s
+  #    depends_on: ["nats-1"]
+  #    hostname: nats-2
+  #    command: "--cluster_name nats-cluster --cluster nats://0.0.0.0:6222 --routes=nats://nats-1:6222,nats://nats-3:6222 --server_name=nats-2 --http_port 8222 -js "
+  #    networks:
+  #      - integration-test
+  #
+  #  nats-3:
+  #    image: nats:alpine
+  #    healthcheck:
+  #      test: echo $$(wget --server-response http://127.0.0.1:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
+  #      interval: 20s
+  #      timeout: 5s
+  #      retries: 5
+  #      start_period: 40s
+  #    depends_on: ["nats-1"]
+  #    hostname: nats-3
+  #    command: "--cluster_name nats-cluster --cluster nats://0.0.0.0:6222 --routes=nats://nats-1:6222,nats://nats-2:6222 --server_name=nats-3 --http_port 8222 -js "
+  #    networks:
+  #      - integration-test
+
+  app:
+    build:
+      context: ./../../
+      dockerfile:  ./.ci/docker/Dockerfile
+    restart: always
+    healthcheck:
+      test: curl --fail http://127.0.0.1:8088/healthz || exit 1
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      nats-1:
+        condition: service_healthy
+    environment:
+      NATS_URL: nats://nats-1:4222
+      HTTP_ADDRESS: :80
+    hostname: app
+    networks:
+      - integration-test
+
+networks:
+  integration-test:
+    driver: bridge
