@@ -1,7 +1,11 @@
 package main
 
+import "time"
+
 type config struct {
-	NATS natsConfig
+	NATS           natsConfig
+	Concurrency    int           `env:"CONCURRENCY" envDefault:"1"`
+	ReprocessDelay time.Duration `env:"REPROCESS_DELAY" envDefault:"60s"`
 }
 
 type natsConfig struct {

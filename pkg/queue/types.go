@@ -1,6 +1,8 @@
 package queue
 
-import "time"
+import (
+	"github.com/nats-io/nats.go/jetstream"
+)
 
 type Config struct {
 	NatsURL     string
@@ -12,6 +14,10 @@ type Config struct {
 
 // StreamConfig represents the configuration for the NATS stream.
 type StreamConfig struct {
-	Name          string
-	RetentionTime time.Duration
+	Name string
+}
+
+type Item[T any] struct {
+	Item T
+	msg  jetstream.Msg
 }

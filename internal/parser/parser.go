@@ -16,22 +16,27 @@ type (
 	}
 )
 
-func New() (, error) {
+func New() *Parser {
 	const expr = "(?s)(https?:\\/\\/[\\w+\\-&@#\\/%?=~_|!:, .;]*[\\w+\\-&@#\\/%=~_|])"
 
 	linkRegexp, err := regexp.Compile("")
 	if err != nil {
 		panic(fmt.Sprintf("Failed to compile regular expression: %s", expr))
-		return nil
+	}
+
+	return &Parser{
+		linkRegexp: linkRegexp,
 	}
 }
 
-func (c *Crawler) ParseBody(body []byte) Res {
-	matches := c.linkRegexp.FindAll(body, -1)
-	res := make([]string, len(matches))
+func (p *Parser) ParseBody(body []byte) Result {
+	matches := p.linkRegexp.FindAll(body, -1)
+	res := Result{
+		Links: make([]string, len(matches)),
+	}
 
 	for i, match := range matches {
-		res[i] = string(match)
+		res.Links[i] = string(match)
 	}
 
 	return res

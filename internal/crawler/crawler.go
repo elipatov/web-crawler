@@ -2,44 +2,49 @@ package crawler
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"net/http"
 	"net/url"
-	"regexp"
 	"sync"
 
+	"github.com/elipatov/web-crawler/internal/parser"
 	"github.com/elipatov/web-crawler/pkg/broem"
 	"github.com/elipatov/web-crawler/pkg/contracts"
+	"github.com/elipatov/web-crawler/pkg/errs"
+	"github.com/elipatov/web-crawler/pkg/logger"
 )
 
-type Queuer interface {
-	Enqueue(resource contracts.Resource)
-	Dequeue() contracts.Resource
-}
+const (
+	codeRetryable = errs.ErrorCode("RETRYABLE")
+)
 
 type Crawler struct {
-	queue    Queuer
-	logger   *slog.Logger
-	browsers map[string]*broem.Browser
-	lock     *sync.RWMutex
+	cfg          Config
+	logger       *logger.Logger
+	queue        Queuer
+	store        Storer
+	browsers     map[string]*broem.Browser
+	parser       *parser.Parser
+	lock         *sync.RWMutex
+	errRetryable *errs.Error
 }
 
-func New(logger *slog.Logger, queue Queuer, urls ...string) *Crawler {
-	const expr = "(?s)(https?:\\/\\/[\\w+\\-&@#\\/%?=~_|!:, .;]*[\\w+\\-&@#\\/%=~_|])"
-
-	linkRegexp, err := regexp.Compile("")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to compile regular expression: %s", expr))
-		return nil
-	}
-
+func New(
+	ctx context.Context,
+	cfg Config,
+	logger *logger.Logger,
+	queue Queuer,
+	store Storer,
+	urls ...string,
+) *Crawler {
 	res := &Crawler{
-		logger:     logger,
-		queue:      queue,
-		browsers:   make(map[string]*broem.Browser),
-		lock:       &sync.RWMutex{},
-		linkRegexp: linkRegexp,
+		cfg:          cfg,
+		logger:       logger,
+		queue:        queue,
+		store:        store,
+		browsers:     make(map[string]*broem.Browser),
+		lock:         &sync.RWMutex{},
+		parser:       parser.New(),
+		errRetryable: errs.New(codeRetryable, ""),
 	}
 
 	for _, url := range urls {
@@ -48,7 +53,7 @@ func New(logger *slog.Logger, queue Queuer, urls ...string) *Crawler {
 			Depth: 0,
 		}
 
-		res.queue.Enqueue(r)
+		res.queue.Enqueue(ctx, r)
 	}
 
 	return res
@@ -70,13 +75,27 @@ func (c *Crawler) Run(ctx context.Context, concurrency int) {
 				default:
 				}
 
-				resource := c.queue.Dequeue()
+				msg := c.queue.Dequeue()
 
-				err := c.process(resource)
+				err := c.process(ctx, msg.Item)
 				if err != nil {
-					c.logger.Error("process failed", err)
+					c.logger.WithError(err).Error("process failed")
+
+					tErr, ok := err.(*errs.Error)
+					if ok && tErr.ErrorCode() == codeRetryable {
+						err = msg.NakWithDelay(c.cfg.ReprocessDelay)
+						if err != nil {
+							c.logger.WithError(err).Error("nak failed")
+						}
+
+						continue
+					}
 				}
 
+				err = msg.Ack()
+				if err != nil {
+					c.logger.WithError(err).Error("ack failed")
+				}
 			}
 		}()
 	}
@@ -84,40 +103,63 @@ func (c *Crawler) Run(ctx context.Context, concurrency int) {
 	wg.Wait()
 }
 
-func (c *Crawler) process(resource contracts.Resource) error {
+func (c *Crawler) process(ctx context.Context, resource contracts.Resource) error {
 	bro, err := c.getBrowser(resource.Url)
 	if err != nil {
-		return err
+		return errs.WrapError(err)
 	}
 
 	req, err := bro.NewRequest(http.MethodGet, resource.Url, nil)
 	if err != nil {
-		return err
+		return errs.WrapError(err)
 	}
 
 	resp, body, err := bro.SendRequest(req)
 	if err != nil {
-		return err
+		return errs.WrapError(err)
 	}
 
-	err = statusToErr(resp.StatusCode)
+	err = c.statusToErr(resp.StatusCode)
 	if err != nil {
 		return err
 	}
 
-	c.parseBody(body)
+	parseRes := c.parser.ParseBody(body)
+
+	for _, link := range parseRes.Links {
+		r := contracts.Resource{
+			Url:   link,
+			Depth: resource.Depth + 1,
+		}
+
+		key := urlToKey(link)
+
+		c.store.Get(ctx, key)
+
+		c.queue.Enqueue(ctx, r)
+	}
+
+	return nil
 }
 
-func statusToErr(statusCode int) error {
+func (c *Crawler) statusToErr(statusCode int) error {
 	switch statusCode {
 	case http.StatusOK:
 		return nil
 	case http.StatusNotFound:
-	case http.StatusTooManyRequests:
+		return errs.ErrNotFound
+	case http.StatusUnauthorized:
+		return errs.ErrUnauthorized
 	case http.StatusForbidden:
+		return errs.ErrForbidden
+	case http.StatusUnavailableForLegalReasons:
+		return errs.ErrUnexpected
+	case http.StatusTooManyRequests:
+		return c.errRetryable.WithMessage("Too Many Requests")
 	case http.StatusBadGateway, http.StatusServiceUnavailable:
+		return c.errRetryable.WithMessagef("Unavailable (status %s)", statusCode)
 	default:
-
+		return errs.ErrUnexpected.WithMessagef("Unexpected status %s", statusCode)
 	}
 }
 
@@ -145,4 +187,8 @@ func (c *Crawler) getBrowser(address string) (*broem.Browser, error) {
 	}
 
 	return br, nil
+}
+
+func urlToKey(url string) string {
+	return url
 }
