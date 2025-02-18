@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	ReprocessDelay time.Duration
+	TTL            time.Duration
 }
 
 type ResourceInfo struct {

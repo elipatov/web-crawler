@@ -41,6 +41,7 @@ func New(ctx context.Context, logger *logger.Logger, cfg config) (*App, error) {
 
 	cCfg := crawler.Config{
 		ReprocessDelay: cfg.ReprocessDelay,
+		TTL:            cfg.TTL,
 	}
 
 	app := &App{

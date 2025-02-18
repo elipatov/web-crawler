@@ -2,15 +2,18 @@ package crawler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/elipatov/web-crawler/internal/parser"
 	"github.com/elipatov/web-crawler/pkg/broem"
 	"github.com/elipatov/web-crawler/pkg/contracts"
 	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/logger"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 const (
@@ -134,9 +137,17 @@ func (c *Crawler) process(ctx context.Context, resource contracts.Resource) erro
 
 		key := urlToKey(link)
 
-		c.store.Get(ctx, key)
+		existing, err := c.store.Get(ctx, key)
+		if err != nil && !errors.Is(err, jetstream.ErrKeyNotFound) {
+			return err
+		}
 
-		c.queue.Enqueue(ctx, r)
+		if errors.Is(err, jetstream.ErrKeyNotFound) || time.Since(existing.timestamp) > c.cfg.TTL {
+			err = c.queue.Enqueue(ctx, r)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

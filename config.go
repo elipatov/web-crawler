@@ -6,6 +6,7 @@ type config struct {
 	NATS           natsConfig
 	Concurrency    int           `env:"CONCURRENCY" envDefault:"1"`
 	ReprocessDelay time.Duration `env:"REPROCESS_DELAY" envDefault:"60s"`
+	TTL            time.Duration `env:"TTL" envDefault:"30d"`
 }
 
 type natsConfig struct {
