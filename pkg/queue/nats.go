@@ -45,7 +45,7 @@ func New[T any](ctx context.Context, logger *logger.Logger, cfg Config, natsConn
 	return res, nil
 }
 
-func (q *Queue[T]) Consume(ctx context.Context) error {
+func (q *Queue[T]) Run(ctx context.Context) error {
 	consConfig := jetstream.ConsumerConfig{
 		Durable:       q.cfg.ConsumerID,
 		AckPolicy:     jetstream.AckExplicitPolicy,

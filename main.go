@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -24,12 +23,20 @@ func main() {
 
 	cfg, err := newConfig()
 	if err != nil {
-		log.Fatalf("failed to apply configuration: %v", err)
+		logger.WithError(err).Error("failed to apply configuration")
 	}
 
 	logger.Infof("Mode: %s", mode)
 
-	New(ctx, logger, cfg)
+	app, err := New(ctx, logger, cfg)
+	if err != nil {
+		logger.WithError(err).Error("failed to create app")
+	}
+
+	err = app.Run(ctx, mode, os.Args[1:]...)
+	if err != nil {
+		logger.WithError(err).Error("failed to run app")
+	}
 }
 
 func newConfig() (config, error) {

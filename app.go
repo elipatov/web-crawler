@@ -6,6 +6,7 @@ import (
 	"github.com/elipatov/web-crawler/internal/crawler"
 	"github.com/elipatov/web-crawler/pkg/contracts"
 	"github.com/elipatov/web-crawler/pkg/errs"
+	"github.com/elipatov/web-crawler/pkg/kvstore"
 	"github.com/elipatov/web-crawler/pkg/logger"
 	"github.com/elipatov/web-crawler/pkg/queue"
 	"github.com/nats-io/nats.go"
@@ -44,11 +45,13 @@ func New(ctx context.Context, logger *logger.Logger, cfg config) (*App, error) {
 		TTL:            cfg.TTL,
 	}
 
+	store, err := kvstore.New[crawler.ResourceInfo](ctx, logger, cfg.NATS.Bucket, conn)
+
 	app := &App{
 		cfg:     cfg,
 		logger:  logger,
 		queue:   q,
-		crawler: crawler.New(ctx, cCfg, logger, q),
+		crawler: crawler.New(ctx, cCfg, logger, q, store),
 	}
 
 	return app, nil
@@ -58,7 +61,7 @@ func New(ctx context.Context, logger *logger.Logger, cfg config) (*App, error) {
 func (a *App) Run(ctx context.Context, mode string, args ...string) error {
 	switch mode {
 	case "seed":
-		return a.seed(ctx)
+		return a.seed(ctx, args...)
 	case "proc":
 		return a.process(ctx)
 	default:
@@ -86,7 +89,7 @@ func (a *App) seed(ctx context.Context, urls ...string) error {
 }
 
 func (a *App) process(ctx context.Context) error {
-	err := a.queue.Consume(ctx)
+	err := a.queue.Run(ctx)
 	if err != nil {
 		return err
 	}
