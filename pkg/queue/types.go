@@ -5,11 +5,10 @@ import (
 )
 
 type Config struct {
-	NatsURL     string
-	ConsumerID  string
-	Concurrency int
-	Stream      StreamConfig
-	Subject     string
+	NatsURL    string
+	ConsumerID string
+	Stream     StreamConfig
+	Subject    string
 }
 
 // StreamConfig represents the configuration for the NATS stream.

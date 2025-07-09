@@ -94,27 +94,14 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 	q.wg.Add(1)
 	defer q.wg.Done()
 
-	stops := make([]jetstream.ConsumeContext, 0, q.cfg.Concurrency)
-
-	stop := func() {
-		for _, s := range stops {
-			s.Stop()
-		}
-	}
-
-	for i := 0; i < q.cfg.Concurrency; i++ {
-		consCtx, err := cons.Consume(handler)
-		if err != nil {
-			stop()
-			return err
-		}
-
-		stops = append(stops, consCtx)
+	consCtx, err := cons.Consume(handler)
+	if err != nil {
+		return err
 	}
 
 	go func() {
 		<-ctx.Done()
-		stop()
+		consCtx.Stop()
 	}()
 
 	return nil
