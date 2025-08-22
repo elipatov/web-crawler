@@ -26,9 +26,8 @@ func New(ctx context.Context, logger *logger.Logger, cfg config) (*App, error) {
 	}
 
 	qCfg := queue.Config{
-		NatsURL:     cfg.NATS.URL,
-		ConsumerID:  cfg.NATS.ConsumerID,
-		Concurrency: cfg.NATS.Concurrency,
+		NatsURL:    cfg.NATS.URL,
+		ConsumerID: cfg.NATS.ConsumerID,
 		Stream: queue.StreamConfig{
 			Name: cfg.NATS.Stream,
 		},

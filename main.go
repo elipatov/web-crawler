@@ -21,6 +21,8 @@ func main() {
 	ctx := appContext()
 	logger := logger.New("DEBUG")
 
+	logger.With("mode", mode).Info("Starting")
+
 	cfg, err := newConfig()
 	if err != nil {
 		logger.WithError(err).Error("failed to apply configuration")

@@ -3,6 +3,7 @@ package kvstore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/logger"
@@ -43,6 +44,10 @@ func (s *Store[T]) Get(ctx context.Context, key string) (T, error) {
 
 	err = json.Unmarshal(kv.Value(), &res)
 	if err != nil {
+		if errors.Is(err, jetstream.ErrKeyNotFound) {
+			return res, errs.ErrNotFound
+		}
+
 		return res, errs.WrapError(err)
 	}
 

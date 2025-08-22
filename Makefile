@@ -1,6 +1,18 @@
 .PHONY: run
 run:
-	docker compose -f ./.ci/docker-compose/integration-test.yml up
+	docker-compose -f ./.ci/docker-compose/integration-test.yml up --build --scale app=3 -d
+
+.PHONY: run0
+run0:
+	docker-compose -f ./.ci/docker-compose/integration-test.yml up --build --scale app=0 --scale nginx=0 -d
+
+.PHONY: run1
+run1:
+	docker-compose -f ./.ci/docker-compose/integration-test.yml up --build --scale app=1 -d
+
+.PHONY: run2
+run2:
+	docker-compose -f ./.ci/docker-compose/integration-test.yml up --build --scale app=2 -d
 
 .PHONY: lint
 lint:
