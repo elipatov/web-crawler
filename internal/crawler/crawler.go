@@ -127,21 +127,29 @@ func (c *Crawler) process(ctx context.Context, resource contracts.Resource) erro
 	}
 
 	parseRes := c.parser.ParseBody(body)
+	rInfo := ResourceInfo{
+		Url:       resource.Url,
+		Timestamp: time.Now().UTC(),
+	}
+
+	err = c.store.Set(ctx, urlToKey(resource.Url), rInfo)
+	if err != nil {
+		return err
+	}
 
 	for _, link := range parseRes.Links {
+		key := urlToKey(link)
 		r := contracts.Resource{
 			Url:   link,
 			Depth: resource.Depth + 1,
 		}
-
-		key := urlToKey(link)
 
 		existing, err := c.store.Get(ctx, key)
 		if err != nil && !errors.Is(err, errs.ErrNotFound) {
 			return err
 		}
 
-		if errors.Is(err, errs.ErrNotFound) || time.Since(existing.timestamp) > c.cfg.TTL {
+		if errors.Is(err, errs.ErrNotFound) || time.Since(existing.Timestamp) > c.cfg.TTL {
 			err = c.queue.Enqueue(ctx, r)
 			if err != nil {
 				return err

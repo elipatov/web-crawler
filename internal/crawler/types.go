@@ -14,8 +14,8 @@ type Config struct {
 }
 
 type ResourceInfo struct {
-	url       string
-	timestamp time.Time
+	Url       string
+	Timestamp time.Time
 }
 
 type Queuer interface {
