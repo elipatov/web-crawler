@@ -1,5 +1,9 @@
 version: "3.9"
 
+volumes:
+  ws_prometheus:
+  ws_grafana:
+
 services:
   nats-1:
     image: nats:alpine
@@ -94,7 +98,7 @@ services:
       - integration-test
 
   elasticsearch:
-    image: elasticsearch:8.13.0
+    image: elasticsearch:9.2.3
     environment:
       - discovery.type="single-node"
       #      - ELASTIC_PASSWORD="password"

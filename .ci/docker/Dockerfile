@@ -8,7 +8,7 @@ COPY . .
 ENV CGO_ENABLED 0
 ENV GO111MODULE=on
 
-RUN go build -o app ./main.go
+RUN go build -o app ./.
 
 FROM alpine:3.18
 

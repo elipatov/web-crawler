@@ -20,14 +20,15 @@ const (
 )
 
 type Crawler struct {
-	cfg          Config
-	logger       *logger.Logger
-	queue        Queuer
-	store        Storer
-	browsers     map[string]*broem.Browser
-	parser       *parser.Parser
-	lock         *sync.RWMutex
-	errRetryable *errs.Error
+	cfg           Config
+	logger        *logger.Logger
+	queue         Queuer
+	resourceStore ResourceStorer
+	textStore     TextStorer
+	browsers      map[string]*broem.Browser
+	parser        *parser.Parser
+	lock          *sync.RWMutex
+	errRetryable  *errs.Error
 }
 
 func New(
@@ -35,18 +36,20 @@ func New(
 	cfg Config,
 	logger *logger.Logger,
 	queue Queuer,
-	store Storer,
+	resourceStore ResourceStorer,
+	textStore TextStorer,
 	urls ...string,
 ) *Crawler {
 	res := &Crawler{
-		cfg:          cfg,
-		logger:       logger,
-		queue:        queue,
-		store:        store,
-		browsers:     make(map[string]*broem.Browser),
-		lock:         &sync.RWMutex{},
-		parser:       parser.New(logger),
-		errRetryable: errs.New(codeRetryable, ""),
+		cfg:           cfg,
+		logger:        logger,
+		queue:         queue,
+		resourceStore: resourceStore,
+		textStore:     textStore,
+		browsers:      make(map[string]*broem.Browser),
+		lock:          &sync.RWMutex{},
+		parser:        parser.New(logger),
+		errRetryable:  errs.New(codeRetryable, ""),
 	}
 
 	for _, url := range urls {
@@ -132,7 +135,12 @@ func (c *Crawler) process(ctx context.Context, resource contracts.Resource) erro
 		Timestamp: time.Now().UTC(),
 	}
 
-	err = c.store.Set(ctx, urlToKey(resource.Url), rInfo)
+	err = c.textStore.Set(ctx, resource.Url, parseRes.Text)
+	if err != nil {
+		return err
+	}
+
+	err = c.resourceStore.Set(ctx, urlToKey(resource.Url), rInfo)
 	if err != nil {
 		return err
 	}
@@ -144,7 +152,7 @@ func (c *Crawler) process(ctx context.Context, resource contracts.Resource) erro
 			Depth: resource.Depth + 1,
 		}
 
-		existing, err := c.store.Get(ctx, key)
+		existing, err := c.resourceStore.Get(ctx, key)
 		if err != nil && !errors.Is(err, errs.ErrNotFound) {
 			return err
 		}

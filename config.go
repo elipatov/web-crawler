@@ -4,6 +4,7 @@ import "time"
 
 type config struct {
 	NATS           natsConfig
+	Elasticsearch  elasticsearchConfig
 	Concurrency    int           `env:"CONCURRENCY" envDefault:"1"`
 	ReprocessDelay time.Duration `env:"REPROCESS_DELAY" envDefault:"60s"`
 	TTL            time.Duration `env:"TTL" envDefault:"30d"`
@@ -16,4 +17,8 @@ type natsConfig struct {
 	Bucket      string `env:"NATS_BUCKET" envDefault:"webcrawler"`
 	ConsumerID  string `env:"NATS_CONSUMER_ID" envDefault:"webcrawler"`
 	Concurrency int    `env:"NATS_CONCURRENCY" envDefault:"1"`
+}
+
+type elasticsearchConfig struct {
+	Addresses []string `env:"ELASTICSEARCH_ADDRESSES" envDefault:"http://127.0.0.1:9200"`
 }

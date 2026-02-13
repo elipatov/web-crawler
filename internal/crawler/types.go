@@ -23,7 +23,11 @@ type Queuer interface {
 	Dequeue() queue.Item[contracts.Resource]
 }
 
-type Storer interface {
+type ResourceStorer interface {
 	Get(context.Context, string) (ResourceInfo, error)
 	Set(context.Context, string, ResourceInfo) error
+}
+
+type TextStorer interface {
+	Set(ctx context.Context, url, text string) error
 }

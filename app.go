@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/elipatov/web-crawler/internal/crawler"
+	"github.com/elipatov/web-crawler/internal/search"
 	"github.com/elipatov/web-crawler/pkg/contracts"
 	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/kvstore"
@@ -44,13 +45,21 @@ func New(ctx context.Context, logger *logger.Logger, cfg config) (*App, error) {
 		TTL:            cfg.TTL,
 	}
 
-	store, err := kvstore.New[crawler.ResourceInfo](ctx, logger, cfg.NATS.Bucket, conn)
+	resourceStore, err := kvstore.New[crawler.ResourceInfo](ctx, logger, cfg.NATS.Bucket, conn)
+	if err != nil {
+		return nil, err
+	}
+
+	searchStore, err := search.New(cfg.Elasticsearch.Addresses)
+	if err != nil {
+		return nil, err
+	}
 
 	app := &App{
 		cfg:     cfg,
 		logger:  logger,
 		queue:   q,
-		crawler: crawler.New(ctx, cCfg, logger, q, store),
+		crawler: crawler.New(ctx, cCfg, logger, q, resourceStore, searchStore),
 	}
 
 	return app, nil
