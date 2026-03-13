@@ -7,12 +7,12 @@ type config struct {
 	Elasticsearch  elasticsearchConfig
 	Concurrency    int           `env:"CONCURRENCY" envDefault:"1"`
 	ReprocessDelay time.Duration `env:"REPROCESS_DELAY" envDefault:"60s"`
-	TTL            time.Duration `env:"TTL" envDefault:"30d"`
+	TTL            time.Duration `env:"TTL" envDefault:"720h"`
 }
 
 type natsConfig struct {
-	URL         string `env:"NATS_URL" envDefault:"nats://127.0.0.1:4222"`
-	Stream      string `env:"NATS_URL" envDefault:"webcrawler"`
+	URL         string `env:"NATS_URL" envDefault:"nats://nats-1:4222"`
+	Stream      string `env:"NATS_STREAM" envDefault:"webcrawler"`
 	Subject     string `env:"NATS_SUBJECT" envDefault:"resources"`
 	Bucket      string `env:"NATS_BUCKET" envDefault:"webcrawler"`
 	ConsumerID  string `env:"NATS_CONSUMER_ID" envDefault:"webcrawler"`

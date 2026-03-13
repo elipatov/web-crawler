@@ -16,10 +16,7 @@ services:
     hostname: nats-1
     ports:
       - "4222:4222"
-    command:
-      - "--js"
-      - "--server_name"
-      - "natsapi"
+    command: "--js --http_port 8222 --server_name nats-1"
     networks:
       - integration-test
 
@@ -72,7 +69,7 @@ services:
       dockerfile:  ./.ci/docker/Dockerfile
     restart: always
     healthcheck:
-      test: curl --fail http://127.0.0.1:80/healthz || exit 1
+      test: echo $$(wget --server-response http://127.0.0.1:8222/varz 2>&1 | grep  '200 OK') | grep '200'  || exit 1
       interval: 3s
       timeout: 3s
       retries: 10

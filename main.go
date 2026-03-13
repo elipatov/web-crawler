@@ -44,7 +44,7 @@ func main() {
 func newConfig() (config, error) {
 	var conf config
 
-	err := env.Parse(conf)
+	err := env.Parse(&conf)
 	if err != nil {
 		return conf, fmt.Errorf("failed to read configuration: %w", err)
 	}

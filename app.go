@@ -73,7 +73,7 @@ func (a *App) Run(ctx context.Context, mode string, args ...string) error {
 	case "proc":
 		return a.process(ctx)
 	default:
-		return errs.ErrInvalidValue.WithMessagef("invalid '%s' mode", mode)
+		return a.process(ctx)
 	}
 }
 

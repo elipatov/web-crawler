@@ -58,7 +58,6 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 	}
 
 	out := make(chan Item[T])
-	defer close(out)
 
 	q.out = out
 
@@ -102,6 +101,7 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		consCtx.Stop()
+		close(out)
 	}()
 
 	return nil
