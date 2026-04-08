@@ -1,9 +1,10 @@
-package main
+package app
 
 import "time"
 
-type config struct {
+type Config struct {
 	NATS           natsConfig
+	HTTPAddress    string `env:"HTTP_ADDRESS" envDefault:":8080"`
 	Elasticsearch  elasticsearchConfig
 	Concurrency    int           `env:"CONCURRENCY" envDefault:"1"`
 	ReprocessDelay time.Duration `env:"REPROCESS_DELAY" envDefault:"60s"`

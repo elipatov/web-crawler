@@ -1,7 +1,8 @@
-package main
+package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/elipatov/web-crawler/internal/crawler"
 	"github.com/elipatov/web-crawler/internal/search"
@@ -11,16 +12,17 @@ import (
 	"github.com/elipatov/web-crawler/pkg/logger"
 	"github.com/elipatov/web-crawler/pkg/queue"
 	"github.com/nats-io/nats.go"
+	"golang.org/x/sync/errgroup"
 )
 
 type App struct {
 	queue   *queue.Queue[contracts.Resource]
 	crawler *crawler.Crawler
-	cfg     config
+	cfg     Config
 	logger  *logger.Logger
 }
 
-func New(ctx context.Context, logger *logger.Logger, cfg config) (*App, error) {
+func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
 	conn, err := nats.Connect(cfg.NATS.URL)
 	if err != nil {
 		panic(err)
@@ -66,15 +68,25 @@ func New(ctx context.Context, logger *logger.Logger, cfg config) (*App, error) {
 
 }
 
-func (a *App) Run(ctx context.Context, mode string, args ...string) error {
-	switch mode {
-	case "seed":
-		return a.seed(ctx, args...)
-	case "proc":
+func (a *App) Run(ctx context.Context) error {
+	group, ctx := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		return a.runHTTPServer()
+	})
+
+	group.Go(func() error {
 		return a.process(ctx)
-	default:
-		return a.process(ctx)
+	})
+
+	err := group.Wait()
+	if err != nil && !errors.Is(err, context.Canceled) {
+		a.logger.Error("wait application", err)
 	}
+
+	a.logger.Info("application stopped")
+
+	return nil
 }
 
 func (a *App) seed(ctx context.Context, urls ...string) error {

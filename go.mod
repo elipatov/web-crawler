@@ -1,17 +1,18 @@
 module github.com/elipatov/web-crawler
 
-go 1.24
+go 1.25.0
 
 require (
+	github.com/elastic/go-elasticsearch/v9 v9.2.1
 	github.com/nats-io/nats.go v1.43.0
 	golang.org/x/net v0.43.0
+	golang.org/x/sync v0.20.0
 )
 
 require (
 	github.com/caarlos0/env/v11 v11.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.8.0 // indirect
-	github.com/elastic/go-elasticsearch/v9 v9.2.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect

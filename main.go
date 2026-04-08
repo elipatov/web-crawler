@@ -8,41 +8,34 @@ import (
 	"syscall"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/elipatov/web-crawler/internal/app"
 	"github.com/elipatov/web-crawler/pkg/logger"
 )
 
 func main() {
-	var mode string
-
-	if len(os.Args) > 1 {
-		mode = os.Args[1]
-	}
-
 	ctx := appContext()
 	logger := logger.New("DEBUG")
 
-	logger.With("mode", mode).Info("Starting")
+	logger.Info("Starting")
 
 	cfg, err := newConfig()
 	if err != nil {
 		logger.WithError(err).Error("failed to apply configuration")
 	}
 
-	logger.Infof("Mode: %s", mode)
-
-	app, err := New(ctx, logger, cfg)
+	app, err := app.New(ctx, logger, cfg)
 	if err != nil {
 		logger.WithError(err).Error("failed to create app")
 	}
 
-	err = app.Run(ctx, mode, os.Args[1:]...)
+	err = app.Run(ctx)
 	if err != nil {
 		logger.WithError(err).Error("failed to run app")
 	}
 }
 
-func newConfig() (config, error) {
-	var conf config
+func newConfig() (app.Config, error) {
+	var conf app.Config
 
 	err := env.Parse(&conf)
 	if err != nil {
