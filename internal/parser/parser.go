@@ -25,7 +25,7 @@ type (
 func New(logger *logger.Logger) *Parser {
 	const expr = "(?s)(https?:\\/\\/[\\w+\\-&@#\\/%?=~_|!:, .;]*[\\w+\\-&@#\\/%=~_|])"
 
-	linkRegexp, err := regexp.Compile("")
+	linkRegexp, err := regexp.Compile(expr)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to compile regular expression: %s", expr))
 	}
@@ -58,22 +58,24 @@ func (p *Parser) ParseBody(body []byte) Result {
 }
 
 func extractText(n *html.Node, builder *strings.Builder) {
-	if n.Type == html.ElementNode && n.Data != "script" && n.Data != "style" {
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			extractText(c, builder)
-		}
-
-		return
-	}
-
 	if n.Type == html.TextNode {
 		text := strings.TrimSpace(n.Data)
 		if text != "" {
 			builder.WriteString(text)
 			builder.WriteString("\r\n")
 		}
+
+		return
 	}
 
+	// Skip script and style elements.
+	if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style") {
+		return
+	}
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		extractText(c, builder)
+	}
 }
 
 func htmlToText(htmlInput string) (string, error) {

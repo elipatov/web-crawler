@@ -2,6 +2,8 @@ package crawler
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/url"
@@ -216,5 +218,6 @@ func (c *Crawler) getBrowser(address string) (*broem.Browser, error) {
 }
 
 func urlToKey(url string) string {
-	return url
+	hash := md5.Sum([]byte(url))
+	return hex.EncodeToString(hash[:])
 }
