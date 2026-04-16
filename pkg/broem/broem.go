@@ -96,7 +96,7 @@ func (b *Browser) parseResponse(body []byte, headers http.Header) {
 		}
 	}
 
-	if len(newCookies) > 0 {
+	if b.onCookiesUpdate != nil && len(newCookies) > 0 {
 		b.onCookiesUpdate(newCookies)
 	}
 
