@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,9 +18,9 @@ import (
 	"github.com/elipatov/web-crawler/pkg/logger"
 )
 
-const (
-	codeRetryable = errs.ErrorCode("RETRYABLE")
-)
+const codeRetryable = errs.ErrorCode("RETRYABLE")
+
+var errRetryable = errs.New(codeRetryable, "")
 
 type Crawler struct {
 	cfg           Config
@@ -30,7 +31,6 @@ type Crawler struct {
 	browsers      map[string]*broem.Browser
 	parser        *parser.Parser
 	lock          *sync.RWMutex
-	errRetryable  *errs.Error
 }
 
 func New(
@@ -51,7 +51,6 @@ func New(
 		browsers:      make(map[string]*broem.Browser),
 		lock:          &sync.RWMutex{},
 		parser:        parser.New(logger),
-		errRetryable:  errs.New(codeRetryable, ""),
 	}
 
 	for _, url := range urls {
@@ -86,10 +85,9 @@ func (c *Crawler) Run(ctx context.Context, concurrency int) {
 
 				err := c.process(ctx, msg.Item)
 				if err != nil {
-					c.logger.WithError(err).Error("process failed")
+					c.logger.WithError(err).With("url", msg.Item.Url).Error("process failed")
 
-					tErr, ok := err.(*errs.Error)
-					if ok && tErr.ErrorCode() == codeRetryable {
+					if errors.Is(err, errRetryable) {
 						err = msg.NakWithDelay(c.cfg.ReprocessDelay)
 						if err != nil {
 							c.logger.WithError(err).Error("nak failed")
@@ -131,7 +129,13 @@ func (c *Crawler) process(ctx context.Context, resource contracts.Resource) erro
 		return err
 	}
 
+	contentType := resp.Header.Get("Content-Type")
+	if !isHTMLContent(contentType) {
+		return nil
+	}
+
 	parseRes := c.parser.ParseBody(body)
+
 	rInfo := ResourceInfo{
 		Url:       resource.Url,
 		Timestamp: time.Now().UTC(),
@@ -183,11 +187,11 @@ func (c *Crawler) statusToErr(statusCode int) error {
 	case http.StatusUnavailableForLegalReasons:
 		return errs.ErrUnexpected
 	case http.StatusTooManyRequests:
-		return c.errRetryable.WithMessage("Too Many Requests")
+		return errRetryable.WithMessage("Too Many Requests")
 	case http.StatusBadGateway, http.StatusServiceUnavailable:
-		return c.errRetryable.WithMessagef("Unavailable (status %s)", statusCode)
+		return errRetryable.WithMessagef("Unavailable (status %d)", statusCode)
 	default:
-		return errs.ErrUnexpected.WithMessagef("Unexpected status %s", statusCode)
+		return errs.ErrUnexpected.WithMessagef("Unexpected status %d", statusCode)
 	}
 }
 
@@ -215,6 +219,28 @@ func (c *Crawler) getBrowser(address string) (*broem.Browser, error) {
 	}
 
 	return br, nil
+}
+
+var htmlTypes = []string{
+	"text/html",
+	"application/xhtml+xml",
+	"text/xml",
+	"application/xml",
+}
+
+func isHTMLContent(contentType string) bool {
+	if contentType == "" {
+		return false
+	}
+
+	ct := strings.ToLower(strings.Split(contentType, ";")[0])
+	for _, htmlType := range htmlTypes {
+		if ct == htmlType {
+			return true
+		}
+	}
+
+	return false
 }
 
 func urlToKey(url string) string {

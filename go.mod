@@ -1,6 +1,6 @@
 module github.com/elipatov/web-crawler
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/elastic/go-elasticsearch/v9 v9.2.1
