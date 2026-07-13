@@ -25,7 +25,7 @@ type App struct {
 func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
 	conn, err := nats.Connect(cfg.NATS.URL)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	qCfg := queue.Config{

@@ -206,6 +206,13 @@ func (c *Crawler) getBrowser(address string) (*broem.Browser, error) {
 	c.lock.RUnlock()
 
 	if !ok {
+		c.lock.Lock()
+
+		br, ok = c.browsers[uri.Host]
+		if ok {
+			return br, nil
+		}
+
 		origin := url.URL{
 			Scheme: uri.Scheme,
 			Host:   uri.Host,
@@ -213,7 +220,6 @@ func (c *Crawler) getBrowser(address string) (*broem.Browser, error) {
 
 		br = broem.New(origin.String(), "", nil)
 
-		c.lock.Lock()
 		c.browsers[uri.Host] = br
 		c.lock.Unlock()
 	}

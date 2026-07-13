@@ -95,7 +95,7 @@ func (err *Error) WithErrorCode(code ErrorCode) *Error {
 }
 
 // WithMessage returns error copy with overridden message and current stack trace.
-// It supposed to be used with sentinel errors: misterr.ErrForbidden.WithMessage("invalid role").
+// It supposed to be used with sentinel errors: errs.ErrForbidden.WithMessage("invalid role").
 func (err *Error) WithMessage(message string) *Error {
 	res := *err
 	res.message = message
@@ -105,7 +105,7 @@ func (err *Error) WithMessage(message string) *Error {
 }
 
 // WithMessagef returns error copy with overridden message and current stack trace.
-// It supposed to be used with sentinel errors: misterr.ErrForbidden.WithMessage("invalid role").
+// It supposed to be used with sentinel errors: errs.ErrForbidden.WithMessage("invalid role").
 func (err *Error) WithMessagef(message string, args ...any) *Error {
 	res := *err
 	res.message = fmt.Sprintf(message, args...)
@@ -115,7 +115,7 @@ func (err *Error) WithMessagef(message string, args ...any) *Error {
 }
 
 // WithError returns error copy with overridden inner error.
-// Original stack trace is used for misterr errors.
+// Original stack trace is used for errs errors.
 func (err *Error) WithError(newErr error) *Error {
 	res := *err
 	res.err = newErr
@@ -188,7 +188,7 @@ func wrapErrorf(err error, skipFrames int, message string, args ...any) error {
 	}
 
 	if e := new(Error); errors.As(err, &e) {
-		// Use original fields for misterr error, but do not duplicate message.
+		// Use original fields for errs error, but do not duplicate message.
 		msg := fmt.Sprintf(message, args...)
 		stack := e.stackTrace
 

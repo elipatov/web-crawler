@@ -100,8 +100,11 @@ func (b *Browser) parseResponse(body []byte, headers http.Header) {
 		parts := strings.Split(val, ";")
 		if len(parts) > 0 {
 			keyValue := strings.Split(parts[0], "=")
-			b.cookies[keyValue[0]] = keyValue[1]
-			newCookies[keyValue[0]] = keyValue[1]
+
+			if len(keyValue) >= 2 {
+				b.cookies[keyValue[0]] = keyValue[1]
+				newCookies[keyValue[0]] = keyValue[1]
+			}
 		}
 	}
 

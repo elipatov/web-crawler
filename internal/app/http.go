@@ -27,9 +27,8 @@ func wrapHandler[T any](logger *logger.Logger, handler HandlerFunc[T]) http.Hand
 			return
 		}
 
-		w.Write(data)
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		w.Write(data)
 	}
 }
 
