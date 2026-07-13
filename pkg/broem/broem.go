@@ -138,7 +138,7 @@ func newRegexp(expr string) *regexp.Regexp {
 }
 
 func AddHeaders(req *http.Request, origin, referer string) {
-	req.Header.Add("Accept", "text/html,spain/xhtml+xml,spain/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,spain/signed-exchange;v=b3;q=0.7")
+	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Add("Accept-Language", "en-US,en;q=0.9,ru;q=0.8")
 	req.Header.Add("Cache-Control", "max-age=0")
 	req.Header.Add("Connection", "keep-alive")
