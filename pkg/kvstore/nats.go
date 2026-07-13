@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/logger"
@@ -64,26 +63,6 @@ func (s *Store[T]) Set(ctx context.Context, key string, value T) error {
 	_, err = s.store.Put(ctx, key, buf)
 	if err != nil {
 		return errs.WrapError(err)
-	}
-
-	return nil
-}
-
-func (s *Store[T]) Describe(ctx context.Context) error {
-	keys, err := s.store.Keys(ctx)
-	if err != nil {
-		return errs.WrapError(err)
-	}
-
-	for _, key := range keys {
-		kve, err := s.store.Get(ctx, key)
-		if err != nil {
-			return errs.WrapError(err)
-		}
-
-		fmt.Println(kve.Key())
-		fmt.Println(string(kve.Value()))
-		fmt.Println()
 	}
 
 	return nil

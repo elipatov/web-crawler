@@ -52,11 +52,6 @@ func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	err = resourceStore.Describe(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	searchStore, err := search.New(cfg.Elasticsearch.Addresses)
 	if err != nil {
 		return nil, err

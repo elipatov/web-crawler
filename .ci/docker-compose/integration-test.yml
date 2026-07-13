@@ -79,6 +79,7 @@ services:
     environment:
       NATS_URL: nats://nats-1:4222
       HTTP_ADDRESS: :80
+      ELASTICSEARCH_ADDRESSES: http://elasticsearch:9200
     hostname: app
     networks:
       - integration-test
