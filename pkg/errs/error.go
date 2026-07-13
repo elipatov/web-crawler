@@ -56,6 +56,7 @@ type Error struct {
 func New(code ErrorCode, message string) *Error {
 	return &Error{
 		message:    message,
+		errorCode:  code,
 		stackTrace: stackTrace(1),
 	}
 }
@@ -65,6 +66,7 @@ func New(code ErrorCode, message string) *Error {
 func Errorf(code ErrorCode, message string, args ...any) *Error {
 	return &Error{
 		message:    fmt.Sprintf(message, args...),
+		errorCode:  code,
 		stackTrace: stackTrace(1),
 	}
 }
@@ -72,7 +74,7 @@ func Errorf(code ErrorCode, message string, args ...any) *Error {
 // WrapError returns an error wrapping err.
 func WrapError(err error, message ...string) error {
 	if len(message) > 0 {
-		return WrapErrorf(err, message[0]) //nolint:govet
+		return wrapErrorf(err, 1, "%s", message[0])
 	}
 
 	return wrapErrorf(err, 1, "")
@@ -106,7 +108,7 @@ func (err *Error) WithMessage(message string) *Error {
 // It supposed to be used with sentinel errors: misterr.ErrForbidden.WithMessage("invalid role").
 func (err *Error) WithMessagef(message string, args ...any) *Error {
 	res := *err
-	res.message = fmt.Sprintf(message, args)
+	res.message = fmt.Sprintf(message, args...)
 	res.stackTrace = stackTrace(1)
 
 	return &res

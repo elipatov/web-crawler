@@ -10,14 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var ErrSentinel = New("Sentinel")
+var (
+	ErrSentinel  = New(NotFound, "Sentinel")
+	ErrBadRequest = New(InvalidValue, "bad request")
+)
 
 func TestErrorStackTrace(t *testing.T) {
 	errs := []*Error{getAnError0(), getAnErrorNew0(), getSentinelError0(true)}
 	expectedL01 := [][2]string{
-		{"gitlab.com/wnf3/common/go/libs/misterr.getAnError1", "gitlab.com/wnf3/common/go/libs/misterr.getAnError0"},
-		{"gitlab.com/wnf3/common/go/libs/misterr.getAnErrorNew1", "gitlab.com/wnf3/common/go/libs/misterr.getAnErrorNew0"},
-		{"gitlab.com/wnf3/common/go/libs/misterr.getSentinelError1", "gitlab.com/wnf3/common/go/libs/misterr.getSentinelError0"},
+		{"github.com/elipatov/web-crawler/pkg/errs.getAnError1", "github.com/elipatov/web-crawler/pkg/errs.getAnError0"},
+		{"github.com/elipatov/web-crawler/pkg/errs.getAnErrorNew1", "github.com/elipatov/web-crawler/pkg/errs.getAnErrorNew0"},
+		{"github.com/elipatov/web-crawler/pkg/errs.getSentinelError1", "github.com/elipatov/web-crawler/pkg/errs.getSentinelError0"},
 	}
 
 	require.Error(t, errs[0])
@@ -31,7 +34,7 @@ func TestErrorStackTrace(t *testing.T) {
 		assert.Contains(t, lines[1], "/error_test.go:")
 		assert.Equal(t, expectedL01[i][1], lines[2])
 		assert.Contains(t, lines[3], "/error_test.go:")
-		assert.Equal(t, "gitlab.com/wnf3/common/go/libs/misterr.TestErrorStackTrace", lines[4])
+		assert.Equal(t, "github.com/elipatov/web-crawler/pkg/errs.TestErrorStackTrace", lines[4])
 		assert.Contains(t, lines[5], "/error_test.go:")
 	}
 }
@@ -43,16 +46,16 @@ func TestNakeSentinelErrorStackTrace(t *testing.T) {
 
 	lines := strings.Split(err.StackTrace(), "\n")
 	require.Greater(t, len(lines), 2)
-	assert.Equal(t, "gitlab.com/wnf3/common/go/libs/misterr.TestNakeSentinelErrorStackTrace", lines[0])
+	assert.Equal(t, "github.com/elipatov/web-crawler/pkg/errs.TestNakeSentinelErrorStackTrace", lines[0])
 	assert.Contains(t, lines[1], "/error_test.go:")
 }
 
 func TestWrapStackTrace(t *testing.T) {
 	originals := []*Error{getAnError0(), getAnErrorNew0(), getSentinelError0(true)}
 	expectedL01 := [][2]string{
-		{"gitlab.com/wnf3/common/go/libs/misterr.getAnError1", "gitlab.com/wnf3/common/go/libs/misterr.getAnError0"},
-		{"gitlab.com/wnf3/common/go/libs/misterr.getAnErrorNew1", "gitlab.com/wnf3/common/go/libs/misterr.getAnErrorNew0"},
-		{"gitlab.com/wnf3/common/go/libs/misterr.getSentinelError1", "gitlab.com/wnf3/common/go/libs/misterr.getSentinelError0"},
+		{"github.com/elipatov/web-crawler/pkg/errs.getAnError1", "github.com/elipatov/web-crawler/pkg/errs.getAnError0"},
+		{"github.com/elipatov/web-crawler/pkg/errs.getAnErrorNew1", "github.com/elipatov/web-crawler/pkg/errs.getAnErrorNew0"},
+		{"github.com/elipatov/web-crawler/pkg/errs.getSentinelError1", "github.com/elipatov/web-crawler/pkg/errs.getSentinelError0"},
 	}
 
 	require.Error(t, originals[0])
@@ -69,7 +72,7 @@ func TestWrapStackTrace(t *testing.T) {
 		assert.Contains(t, lines[1], "/error_test.go:")
 		assert.Equal(t, expectedL01[i][1], lines[2])
 		assert.Contains(t, lines[3], "/error_test.go:")
-		assert.Equal(t, "gitlab.com/wnf3/common/go/libs/misterr.TestWrapStackTrace", lines[4])
+		assert.Equal(t, "github.com/elipatov/web-crawler/pkg/errs.TestWrapStackTrace", lines[4])
 		assert.Contains(t, lines[5], "/error_test.go:")
 	}
 }
@@ -79,7 +82,7 @@ func TestWrapMisterrError(t *testing.T) {
 	err := assertMisterr(t, WrapError(original))
 	lines := strings.Split(err.StackTrace(), "\n")
 
-	assert.Equal(t, "gitlab.com/wnf3/common/go/libs/misterr.TestWrapMisterrError", lines[0])
+	assert.Equal(t, "github.com/elipatov/web-crawler/pkg/errs.TestWrapMisterrError", lines[0])
 	assert.Equal(t, original.Error(), err.Error())
 	assert.Equal(t, original.errorCode, err.errorCode)
 
@@ -101,7 +104,7 @@ func TestWrapMisterrError(t *testing.T) {
 }
 
 func TestErrorMessage(t *testing.T) {
-	err := Errorf("Unexpected string value %s and number %d", "bad", 42)
+	err := Errorf(UnexpectedError, "Unexpected string value %s and number %d", "bad", 42)
 	require.Error(t, err)
 	assert.Equal(t, "Unexpected string value bad and number 42", err.Error())
 }
@@ -154,7 +157,7 @@ func TestWrapUnwrapWithMessage(t *testing.T) {
 }
 
 func TestWithErrorCode(t *testing.T) {
-	err := New("Bad value").WithErrorCode(InvalidValue)
+	err := New(UnexpectedError, "Bad value").WithErrorCode(InvalidValue)
 	require.Error(t, err)
 	assert.Equal(t, InvalidValue, err.ErrorCode())
 	assert.Equal(t, string(InvalidValue), err.Code())
@@ -195,7 +198,7 @@ func TestWithError(t *testing.T) {
 	assert.Equal(t, err2.message, err.message)
 	assert.Equal(t, err2.errorCode, err.ErrorCode())
 	require.Greater(t, len(lines), 1)
-	assert.Contains(t, lines[0], "misterr.getAnError1")
+	assert.Contains(t, lines[0], "errs.getAnError1")
 
 	err1 = ErrBadRequest
 	err2 = getAnError0()
@@ -208,7 +211,7 @@ func TestWithError(t *testing.T) {
 	assert.Equal(t, err2.message, err.message)
 	assert.Equal(t, err2.errorCode, err.ErrorCode())
 	require.Greater(t, len(lines), 1)
-	assert.Contains(t, lines[0], "misterr.getAnError1")
+	assert.Contains(t, lines[0], "errs.getAnError1")
 
 	err1 = ErrBadRequest
 	err2 = ErrForbidden
@@ -221,7 +224,7 @@ func TestWithError(t *testing.T) {
 	assert.Equal(t, err2.message, err.message)
 	assert.Equal(t, err2.errorCode, err.ErrorCode())
 	require.Greater(t, len(lines), 1)
-	assert.Contains(t, lines[0], "misterr.TestWithError")
+	assert.Contains(t, lines[0], "errs.TestWithError")
 }
 
 func TestIs(t *testing.T) {
@@ -255,7 +258,7 @@ func getAnError0() *Error {
 }
 
 func getAnError1() *Error {
-	return Errorf("Unexpected")
+	return Errorf(UnexpectedError, "Unexpected")
 }
 
 func getAnErrorNew0() *Error {
@@ -263,7 +266,7 @@ func getAnErrorNew0() *Error {
 }
 
 func getAnErrorNew1() *Error {
-	return New("Unexpected")
+	return New(UnexpectedError, "Unexpected")
 }
 
 func getSentinelError0(wrap bool) *Error {
