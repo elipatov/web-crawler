@@ -16,10 +16,12 @@ import (
 )
 
 type App struct {
-	queue   *queue.Queue[contracts.Resource]
-	crawler *crawler.Crawler
-	cfg     Config
-	logger  *logger.Logger
+	queue       *queue.Queue[contracts.Resource]
+	crawler     *crawler.Crawler
+	cfg         Config
+	logger      *logger.Logger
+	conn        *nats.Conn
+	searchStore *search.Store
 }
 
 func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
@@ -57,10 +59,12 @@ func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
 	}
 
 	app := &App{
-		cfg:     cfg,
-		logger:  logger,
-		queue:   q,
-		crawler: crawler.New(cCfg, logger, q, resourceStore, searchStore),
+		cfg:         cfg,
+		logger:      logger,
+		queue:       q,
+		crawler:     crawler.New(cCfg, logger, q, resourceStore, searchStore),
+		conn:        conn,
+		searchStore: searchStore,
 	}
 
 	return app, nil
@@ -86,6 +90,15 @@ func (a *App) Run(ctx context.Context) error {
 	a.logger.Info("application stopped")
 
 	return nil
+}
+
+func (a *App) Close() {
+	a.conn.Close()
+
+	err := a.searchStore.Close(context.Background())
+	if err != nil {
+		a.logger.WithError(err).Error("failed to close search store")
+	}
 }
 
 func (a *App) seed(ctx context.Context, urls ...string) error {

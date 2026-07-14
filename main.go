@@ -28,6 +28,8 @@ func main() {
 		logger.WithError(err).Fatal("failed to create app")
 	}
 
+	defer app.Close()
+
 	err = app.Run(ctx)
 	if err != nil {
 		logger.WithError(err).Fatal("failed to run app")
