@@ -15,7 +15,7 @@ func wrapHandler[T any](logger *logger.Logger, handler HandlerFunc[T]) http.Hand
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, err := handler(w, r)
 		if err != nil {
-			logger.Error("handle request", err)
+			logger.WithError(err).Error("handle request")
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 
 			return

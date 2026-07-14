@@ -81,7 +81,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	err := group.Wait()
 	if err != nil && !errors.Is(err, context.Canceled) {
-		a.logger.Error("wait application", err)
+		a.logger.WithError(err).Error("wait application")
 	}
 
 	a.logger.Info("application stopped")

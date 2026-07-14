@@ -1,19 +1,15 @@
 package parser
 
 import (
-	"fmt"
-	"regexp"
 	"strings"
 
-	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/logger"
 	"golang.org/x/net/html"
 )
 
 type (
 	Parser struct {
-		linkRegexp *regexp.Regexp
-		logger     *logger.Logger
+		logger *logger.Logger
 	}
 
 	Result struct {
@@ -23,41 +19,31 @@ type (
 )
 
 func New(logger *logger.Logger) *Parser {
-	const expr = "(?s)(https?:\\/\\/[\\w+\\-&@#\\/%?=~_|!:, .;]*[\\w+\\-&@#\\/%=~_|])"
-
-	linkRegexp, err := regexp.Compile(expr)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to compile regular expression: %s", expr))
-	}
-
 	return &Parser{
-		linkRegexp: linkRegexp,
-		logger:     logger,
+		logger: logger,
 	}
 }
 
 func (p *Parser) ParseBody(body []byte) Result {
-	matches := p.linkRegexp.FindAll(body, -1)
-	res := Result{
-		Links: make([]string, len(matches)),
-	}
-
-	for i, match := range matches {
-		res.Links[i] = string(match)
-	}
-
-	text, err := htmlToText(string(body))
+	doc, err := html.Parse(strings.NewReader(string(body)))
 	if err != nil {
-		p.logger.WithError(err).Warn("failed to extract text from HTML")
-		res.Text = string(body)
-	} else {
-		res.Text = text
+		p.logger.WithError(err).Warn("failed to parse HTML")
+		return Result{Text: string(body)}
 	}
 
-	return res
+	var links []string
+	builder := new(strings.Builder)
+
+	walk(doc, &links, builder)
+
+	return Result{
+		Links: links,
+		Text:  builder.String(),
+	}
 }
 
-func extractText(n *html.Node, builder *strings.Builder) {
+// walk traverses the HTML AST, collecting links and text.
+func walk(n *html.Node, links *[]string, builder *strings.Builder) {
 	if n.Type == html.TextNode {
 		text := strings.TrimSpace(n.Data)
 		if text != "" {
@@ -68,25 +54,22 @@ func extractText(n *html.Node, builder *strings.Builder) {
 		return
 	}
 
-	// Skip script and style elements.
-	if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style") {
-		return
+	if n.Type == html.ElementNode {
+		switch n.Data {
+		case "script", "style":
+			// Skip script and style elements.
+			return
+		case "a":
+			for _, attr := range n.Attr {
+				if attr.Key == "href" && strings.HasPrefix(attr.Val, "http") {
+					*links = append(*links, attr.Val)
+					break
+				}
+			}
+		}
 	}
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		extractText(c, builder)
+		walk(c, links, builder)
 	}
-}
-
-func htmlToText(htmlInput string) (string, error) {
-	doc, err := html.Parse(strings.NewReader(htmlInput))
-	if err != nil {
-		return "", errs.WrapError(err, "failed to parse HTML")
-	}
-
-	builder := new(strings.Builder)
-
-	extractText(doc, builder)
-
-	return builder.String(), nil
 }

@@ -1,7 +1,6 @@
 package broem
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,10 +19,7 @@ type Browser struct {
 }
 
 func New(origin, csrfTokenRexp string, onCookiesUpdate func(map[string]string)) *Browser {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // Tests only
-	}
-
+	tr := &http.Transport{}
 	client := &http.Client{Transport: tr}
 
 	return &Browser{
