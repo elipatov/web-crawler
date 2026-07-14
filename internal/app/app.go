@@ -72,7 +72,7 @@ func (a *App) Run(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
 
 	group.Go(func() error {
-		return a.runHTTPServer()
+		return a.runHTTPServer(ctx)
 	})
 
 	group.Go(func() error {

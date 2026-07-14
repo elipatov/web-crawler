@@ -1,13 +1,21 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
+	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/logger"
 )
+
+var errToCode = map[errs.ErrorCode]int{
+	errs.InvalidValue: http.StatusBadRequest,
+	errs.Unauthorized: http.StatusUnauthorized,
+	errs.Forbidden:    http.StatusForbidden,
+	errs.NotFound:     http.StatusNotFound,
+}
 
 type HandlerFunc[T any] func(http.ResponseWriter, *http.Request) (T, error)
 
@@ -15,15 +23,17 @@ func wrapHandler[T any](logger *logger.Logger, handler HandlerFunc[T]) http.Hand
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, err := handler(w, r)
 		if err != nil {
+			status := errToStatus(err)
+
 			logger.WithError(err).Error("handle request")
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			http.Error(w, http.StatusText(status), status)
 
 			return
 		}
 
 		data, err := json.Marshal(res)
 		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
@@ -36,29 +46,61 @@ type SeedRequest struct {
 	URLs []string `json:"urls"`
 }
 
-func (a *App) runHTTPServer() error {
-	http.HandleFunc("/seed", wrapHandler(a.logger, a.handleSeed))
+func (a *App) runHTTPServer(ctx context.Context) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/seed", wrapHandler(a.logger, a.handleSeed))
 
-	err := http.ListenAndServe(a.cfg.HTTPAddress, nil)
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("ListenAndServe: %w", err)
+	srv := &http.Server{
+		Addr:    a.cfg.HTTPAddress,
+		Handler: mux,
 	}
 
-	return nil
+	errCh := make(chan error, 1)
+
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return srv.Shutdown(context.Background())
+	case err := <-errCh:
+		return err
+	}
 }
 
 func (a *App) handleSeed(w http.ResponseWriter, r *http.Request) (struct{}, error) {
+	const maxBody = 100 * 1024
+
+	body := http.MaxBytesReader(w, r.Body, maxBody)
+
 	var req SeedRequest
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(body).Decode(&req)
 	if err != nil {
-		return struct{}{}, fmt.Errorf("invalid body: %w", err)
+		return struct{}{}, errs.ErrInvalidValue.WithMessage(err.Error())
 	}
 
 	err = a.seed(r.Context(), req.URLs...)
 	if err != nil {
-		return struct{}{}, fmt.Errorf("seed: %w", err)
+		return struct{}{}, errs.WrapError(err)
 	}
 
 	return struct{}{}, nil
+}
+
+func errToStatus(err error) int {
+	tErr, ok := errors.AsType[*errs.Error](err)
+	if !ok {
+		return http.StatusInternalServerError
+	}
+
+	if status, ok := errToCode[tErr.ErrorCode()]; ok {
+		return status
+	}
+
+	return http.StatusInternalServerError
 }
