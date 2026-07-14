@@ -6,16 +6,19 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type Browser struct {
 	client          *http.Client
 	origin          string
-	referer         string
-	cookies         map[string]string
-	csrfToken       string
 	csrfTokenRexp   *regexp.Regexp
 	onCookiesUpdate func(map[string]string)
+
+	mu        sync.Mutex
+	referer   string
+	cookies   map[string]string
+	csrfToken string
 }
 
 func New(origin, csrfTokenRexp string, onCookiesUpdate func(map[string]string)) *Browser {
@@ -37,17 +40,23 @@ func (b *Browser) NewRequest(method, url string, body io.Reader) (*http.Request,
 		return nil, err
 	}
 
+	b.mu.Lock()
 	if b.referer == "" {
 		b.referer = b.origin
 	}
+	referer := b.referer
+	b.mu.Unlock()
 
-	AddHeaders(req, b.origin, b.referer)
+	AddHeaders(req, b.origin, referer)
 	b.addCookies(req)
 
 	return req, nil
 }
 
 func (b *Browser) CsrfToken() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	return b.csrfToken
 }
 
@@ -64,30 +73,35 @@ func (b *Browser) SendRequest(req *http.Request) (*http.Response, []byte, error)
 		return nil, nil, err
 	}
 
+	b.mu.Lock()
 	b.parseResponse(respBody, res.Header)
-
 	b.referer = req.URL.String()
+	b.mu.Unlock()
 
 	return res, respBody, nil
 }
 
 func (b *Browser) SetCookies(key, value string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	b.cookies[key] = value
 }
 
 func (b *Browser) addCookies(req *http.Request) {
-	if len(b.cookies) > 0 {
-		cookies := make([]string, 0, len(b.cookies))
+	b.mu.Lock()
+	cookies := make([]string, 0, len(b.cookies))
+	for k, v := range b.cookies {
+		cookies = append(cookies, fmt.Sprintf("%s=%s", k, v))
+	}
+	b.mu.Unlock()
 
-		for k, v := range b.cookies {
-			cookies = append(cookies, fmt.Sprintf("%s=%s", k, v))
-		}
-
-		cookieHeader := strings.Join(cookies, "; ")
-		req.Header.Add("Cookie", cookieHeader)
+	if len(cookies) > 0 {
+		req.Header.Add("Cookie", strings.Join(cookies, "; "))
 	}
 }
 
+// parseResponse must be called with b.mu held.
 func (b *Browser) parseResponse(body []byte, headers http.Header) {
 	setCookies := headers.Values("Set-Cookie")
 	newCookies := make(map[string]string, len(setCookies))
@@ -108,10 +122,8 @@ func (b *Browser) parseResponse(body []byte, headers http.Header) {
 		b.onCookiesUpdate(newCookies)
 	}
 
-	bodyStr := string(body)
-
 	if b.csrfTokenRexp != nil {
-		matchToken := b.csrfTokenRexp.FindStringSubmatch(bodyStr)
+		matchToken := b.csrfTokenRexp.FindStringSubmatch(string(body))
 
 		if len(matchToken) > 3 {
 			b.csrfToken = matchToken[2]

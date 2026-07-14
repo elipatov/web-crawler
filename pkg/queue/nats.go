@@ -111,17 +111,25 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 }
 
 // Enqueue publishes the provided payload to the configured NATS subject.
+// If T implements Key(), it is used as the NATS deduplication ID.
+// Otherwise the ID is derived from entite T.
 func (q *Queue[T]) Enqueue(ctx context.Context, value T) error {
 	payload, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	hash := md5.Sum(payload)
+	var msgID string
+	if k, ok := any(value).(interface{ Key() string }); ok {
+		msgID = k.Key()
+	} else {
+		hash := md5.Sum(payload)
+		msgID = hex.EncodeToString(hash[:])
+	}
+
 	jsMsg := nats.NewMsg(q.cfg.Subject)
 	jsMsg.Data = payload
-
-	jsMsg.Header.Set(jetstream.MsgIDHeader, hex.EncodeToString(hash[:]))
+	jsMsg.Header.Set(jetstream.MsgIDHeader, msgID)
 
 	_, err = q.js.PublishMsg(ctx, jsMsg)
 	if err != nil {
