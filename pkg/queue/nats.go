@@ -93,7 +93,6 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 	}
 
 	q.wg.Add(1)
-	defer q.wg.Done()
 
 	consCtx, err := cons.Consume(handler)
 	if err != nil {

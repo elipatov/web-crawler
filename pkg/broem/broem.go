@@ -133,8 +133,8 @@ func (b *Browser) parseResponse(body []byte, headers http.Header) {
 	if b.csrfTokenRexp != nil {
 		matchToken := b.csrfTokenRexp.FindStringSubmatch(string(body))
 
-		if len(matchToken) > 0 {
-			b.csrfToken = matchToken[0]
+		if len(matchToken) > 1 {
+			b.csrfToken = matchToken[1]
 		}
 	}
 }
