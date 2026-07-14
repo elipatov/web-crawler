@@ -63,10 +63,5 @@ func (s *Store) Close(ctx context.Context) error {
 		return errs.WrapError(err)
 	}
 
-	err = s.client.Close(ctx)
-	if err != nil {
-		return errs.WrapError(err)
-	}
-
 	return nil
 }

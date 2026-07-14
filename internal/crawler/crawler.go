@@ -124,7 +124,7 @@ func (c *Crawler) process(ctx context.Context, resource contracts.Resource) erro
 		return nil
 	}
 
-	parseRes := c.parser.ParseBody(body)
+	parseRes := c.parser.ParseBody(body, resource.Url)
 
 	err = c.textStore.Set(ctx, resource.Url, parseRes.Text)
 	if err != nil {
@@ -205,6 +205,7 @@ func (c *Crawler) getBrowser(address string) (*broem.Browser, error) {
 
 	if !ok {
 		c.lock.Lock()
+		defer c.lock.Unlock()
 
 		br, ok = c.browsers[uri.Host]
 		if ok {
@@ -219,7 +220,6 @@ func (c *Crawler) getBrowser(address string) (*broem.Browser, error) {
 		br = broem.New(origin.String(), "", nil)
 
 		c.browsers[uri.Host] = br
-		c.lock.Unlock()
 	}
 
 	return br, nil

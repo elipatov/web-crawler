@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/logger"
 )
+
+const timeout = 10 * time.Second
 
 var errToCode = map[errs.ErrorCode]int{
 	errs.InvalidValue: http.StatusBadRequest,
@@ -66,7 +69,10 @@ func (a *App) runHTTPServer(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		return srv.Shutdown(context.Background())
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		return srv.Shutdown(shutdownCtx)
 	case err := <-errCh:
 		return err
 	}
