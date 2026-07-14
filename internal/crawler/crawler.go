@@ -65,12 +65,18 @@ func (c *Crawler) Run(ctx context.Context, concurrency int) {
 			defer wg.Done()
 
 			for {
-				var msg queue.Item[contracts.Resource]
+				var (
+					ok  bool
+					msg queue.Item[contracts.Resource]
+				)
 
 				select {
 				case <-ctx.Done():
 					return
-				case msg = <-c.queue.Chan():
+				case msg, ok = <-c.queue.Chan():
+					if !ok {
+						return
+					}
 				}
 
 				err := c.process(ctx, msg.Item)

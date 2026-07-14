@@ -48,7 +48,7 @@ func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
 		TTL:            cfg.TTL,
 	}
 
-	resourceStore, err := kvstore.New[crawler.ResourceInfo](ctx, logger, cfg.NATS.Bucket, conn)
+	resourceStore, err := kvstore.New[crawler.ResourceInfo](ctx, cfg.NATS.Bucket, conn)
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/elipatov/web-crawler/pkg/errs"
-	"github.com/elipatov/web-crawler/pkg/logger"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
@@ -16,7 +15,7 @@ type Store[T any] struct {
 }
 
 // New creates new queue instance.
-func New[T any](ctx context.Context, logger *logger.Logger, bucket string, natsConn *nats.Conn) (*Store[T], error) {
+func New[T any](ctx context.Context, bucket string, natsConn *nats.Conn) (*Store[T], error) {
 	js, err := jetstream.New(natsConn)
 	if err != nil {
 		return nil, errs.WrapError(err)

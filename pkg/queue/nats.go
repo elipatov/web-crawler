@@ -96,6 +96,8 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 
 	consCtx, err := cons.Consume(handler)
 	if err != nil {
+		q.wg.Done()
+
 		return err
 	}
 
