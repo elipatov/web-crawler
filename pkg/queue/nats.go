@@ -69,13 +69,13 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 		q.wg.Add(1)
 		defer q.wg.Done()
 
-		err = json.Unmarshal(msg.Data(), &tItem)
-		if err != nil {
-			q.logger.WithError(err).Error("unmarshal failed")
+		hErr := json.Unmarshal(msg.Data(), &tItem)
+		if hErr != nil {
+			q.logger.WithError(hErr).Error("unmarshal failed")
 
-			err = msg.Ack()
-			if err != nil {
-				q.logger.WithError(err).Error("ack failed")
+			hErr = msg.Ack()
+			if hErr != nil {
+				q.logger.WithError(hErr).Error("ack failed")
 			}
 
 			return
@@ -104,6 +104,7 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 		<-ctx.Done()
 		consCtx.Stop()
 		close(out)
+		q.wg.Done()
 	}()
 
 	return nil

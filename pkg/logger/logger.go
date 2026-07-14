@@ -66,3 +66,9 @@ func (l *Logger) WithError(err error) *Logger {
 func (l *Logger) Infof(msg string, args ...any) {
 	l.Info(fmt.Sprintf(msg, args...))
 }
+
+// Fatal logs at error level and exits the process with code 1.
+func (l *Logger) Fatal(msg string) {
+	l.Error(msg)
+	os.Exit(1)
+}

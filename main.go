@@ -20,17 +20,17 @@ func main() {
 
 	cfg, err := newConfig()
 	if err != nil {
-		logger.WithError(err).Error("failed to apply configuration")
+		logger.WithError(err).Fatal("failed to apply configuration")
 	}
 
 	app, err := app.New(ctx, logger, cfg)
 	if err != nil {
-		logger.WithError(err).Error("failed to create app")
+		logger.WithError(err).Fatal("failed to create app")
 	}
 
 	err = app.Run(ctx)
 	if err != nil {
-		logger.WithError(err).Error("failed to run app")
+		logger.WithError(err).Fatal("failed to run app")
 	}
 }
 
