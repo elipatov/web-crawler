@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Browser struct {
@@ -22,8 +23,15 @@ type Browser struct {
 }
 
 func New(origin, csrfTokenRexp string, onCookiesUpdate func(map[string]string)) *Browser {
-	tr := &http.Transport{}
-	client := &http.Client{Transport: tr}
+	tr := &http.Transport{
+		IdleConnTimeout:     60 * time.Second,
+		MaxIdleConns:        1000,
+		MaxIdleConnsPerHost: 25,
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   10 * time.Second,
+	}
 
 	return &Browser{
 		client:          client,
@@ -125,8 +133,8 @@ func (b *Browser) parseResponse(body []byte, headers http.Header) {
 	if b.csrfTokenRexp != nil {
 		matchToken := b.csrfTokenRexp.FindStringSubmatch(string(body))
 
-		if len(matchToken) > 3 {
-			b.csrfToken = matchToken[2]
+		if len(matchToken) > 0 {
+			b.csrfToken = matchToken[0]
 		}
 	}
 }

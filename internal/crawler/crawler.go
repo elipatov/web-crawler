@@ -35,13 +35,11 @@ type Crawler struct {
 }
 
 func New(
-	ctx context.Context,
 	cfg Config,
 	logger *logger.Logger,
 	queue Queuer,
 	resourceStore ResourceStorer,
 	textStore TextStorer,
-	urls ...string,
 ) *Crawler {
 	res := &Crawler{
 		cfg:           cfg,
@@ -52,15 +50,6 @@ func New(
 		browsers:      make(map[string]*broem.Browser),
 		lock:          &sync.RWMutex{},
 		parser:        parser.New(logger),
-	}
-
-	for _, url := range urls {
-		r := contracts.Resource{
-			Url:   url,
-			Depth: 0,
-		}
-
-		res.queue.Enqueue(ctx, r)
 	}
 
 	return res

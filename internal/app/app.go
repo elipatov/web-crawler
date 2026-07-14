@@ -29,7 +29,6 @@ func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
 	}
 
 	qCfg := queue.Config{
-		NatsURL:    cfg.NATS.URL,
 		ConsumerID: cfg.NATS.ConsumerID,
 		Stream: queue.StreamConfig{
 			Name: cfg.NATS.Stream,
@@ -61,7 +60,7 @@ func New(ctx context.Context, logger *logger.Logger, cfg Config) (*App, error) {
 		cfg:     cfg,
 		logger:  logger,
 		queue:   q,
-		crawler: crawler.New(ctx, cCfg, logger, q, resourceStore, searchStore),
+		crawler: crawler.New(cCfg, logger, q, resourceStore, searchStore),
 	}
 
 	return app, nil
@@ -81,7 +80,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	err := group.Wait()
 	if err != nil && !errors.Is(err, context.Canceled) {
-		a.logger.WithError(err).Error("wait application")
+		return errs.WrapError(err)
 	}
 
 	a.logger.Info("application stopped")

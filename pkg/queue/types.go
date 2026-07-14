@@ -5,7 +5,6 @@ import (
 )
 
 type Config struct {
-	NatsURL    string
 	ConsumerID string
 	Stream     StreamConfig
 	Subject    string

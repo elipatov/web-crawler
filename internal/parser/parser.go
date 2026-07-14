@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/elipatov/web-crawler/pkg/logger"
@@ -25,7 +26,7 @@ func New(logger *logger.Logger) *Parser {
 }
 
 func (p *Parser) ParseBody(body []byte) Result {
-	doc, err := html.Parse(strings.NewReader(string(body)))
+	doc, err := html.Parse(bytes.NewReader(body))
 	if err != nil {
 		p.logger.WithError(err).Warn("failed to parse HTML")
 		return Result{Text: string(body)}

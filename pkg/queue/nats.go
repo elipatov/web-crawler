@@ -23,7 +23,7 @@ type Queue[T any] struct {
 	out    <-chan Item[T]
 }
 
-// New creates new queue instance.
+// New creates a new queue instance.
 func New[T any](ctx context.Context, logger *logger.Logger, cfg Config, natsConn *nats.Conn) (*Queue[T], error) {
 	js, err := jetstream.New(natsConn)
 	if err != nil {
@@ -111,8 +111,8 @@ func (q *Queue[T]) Run(ctx context.Context) error {
 }
 
 // Enqueue publishes the provided payload to the configured NATS subject.
-// If T implements Key(), it is used as the NATS deduplication ID.
-// Otherwise the ID is derived from entite T.
+// If T implements 'Key() string', it is used as the NATS deduplication ID.
+// Otherwise, the ID is derived from entire T.
 func (q *Queue[T]) Enqueue(ctx context.Context, value T) error {
 	payload, err := json.Marshal(value)
 	if err != nil {

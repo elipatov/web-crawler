@@ -10,18 +10,12 @@ import (
 )
 
 type Store struct {
-	client      *elasticsearch.Client
-	clientTyped *elasticsearch.TypedClient
+	client *elasticsearch.TypedClient
 }
 
 func New(addresses []string) (*Store, error) {
 	cfg := elasticsearch.Config{
 		Addresses: addresses,
-	}
-
-	client, err := elasticsearch.NewClient(cfg)
-	if err != nil {
-		return nil, errs.WrapError(err)
 	}
 
 	clientTyped, err := elasticsearch.NewTypedClient(cfg)
@@ -30,8 +24,7 @@ func New(addresses []string) (*Store, error) {
 	}
 
 	return &Store{
-		client:      client,
-		clientTyped: clientTyped,
+		client: clientTyped,
 	}, nil
 }
 
@@ -53,7 +46,7 @@ func (s *Store) Set(ctx context.Context, url, text string) error {
 		Text: text,
 	}
 
-	_, err := s.clientTyped.Index("documents").
+	_, err := s.client.Index("documents").
 		Id(urlToKey(url)).
 		Document(doc).
 		Do(ctx)
@@ -70,7 +63,7 @@ func (s *Store) Close(ctx context.Context) error {
 		return errs.WrapError(err)
 	}
 
-	err = s.clientTyped.Close(ctx)
+	err = s.client.Close(ctx)
 	if err != nil {
 		return errs.WrapError(err)
 	}
