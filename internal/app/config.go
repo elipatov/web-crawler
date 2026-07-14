@@ -6,7 +6,7 @@ type Config struct {
 	NATS           natsConfig
 	HTTPAddress    string `env:"HTTP_ADDRESS" envDefault:":8080"`
 	Elasticsearch  elasticsearchConfig
-	Concurrency    int           `env:"CONCURRENCY" envDefault:"2"`
+	Concurrency    int           `env:"CONCURRENCY" envDefault:"3"`
 	ReprocessDelay time.Duration `env:"REPROCESS_DELAY" envDefault:"60s"`
 	TTL            time.Duration `env:"TTL" envDefault:"720h"`
 }
