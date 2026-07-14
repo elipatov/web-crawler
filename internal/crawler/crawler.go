@@ -16,6 +16,7 @@ import (
 	"github.com/elipatov/web-crawler/pkg/contracts"
 	"github.com/elipatov/web-crawler/pkg/errs"
 	"github.com/elipatov/web-crawler/pkg/logger"
+	"github.com/elipatov/web-crawler/pkg/queue"
 )
 
 const codeRetryable = errs.ErrorCode("RETRYABLE")
@@ -75,13 +76,13 @@ func (c *Crawler) Run(ctx context.Context, concurrency int) {
 			defer wg.Done()
 
 			for {
+				var msg queue.Item[contracts.Resource]
+
 				select {
 				case <-ctx.Done():
 					return
-				default:
+				case msg = <-c.queue.Chan():
 				}
-
-				msg := c.queue.Dequeue()
 
 				err := c.process(ctx, msg.Item)
 				if err != nil {

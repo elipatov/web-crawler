@@ -135,7 +135,11 @@ func (q *Queue[T]) Dequeue() Item[T] {
 	return <-q.out
 }
 
-// Done returns channel that get closed when consumer complete.
+func (q *Queue[T]) Chan() <-chan Item[T] {
+	return q.out
+}
+
+// Done returns channel that got closed when consumer complete.
 func (q *Queue[T]) Done() <-chan struct{} {
 	done := make(chan struct{})
 

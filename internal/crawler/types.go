@@ -21,6 +21,7 @@ type ResourceInfo struct {
 type Queuer interface {
 	Enqueue(context.Context, contracts.Resource) error
 	Dequeue() queue.Item[contracts.Resource]
+	Chan() <-chan queue.Item[contracts.Resource]
 }
 
 type ResourceStorer interface {
