@@ -2,6 +2,8 @@ package queue
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"sync"
 	"time"
@@ -114,7 +116,13 @@ func (q *Queue[T]) Enqueue(ctx context.Context, value T) error {
 		return err
 	}
 
-	_, err = q.js.Publish(ctx, q.cfg.Subject, payload)
+	hash := md5.Sum(payload)
+	jsMsg := nats.NewMsg(q.cfg.Subject)
+	jsMsg.Data = payload
+
+	jsMsg.Header.Set(jetstream.MsgIDHeader, hex.EncodeToString(hash[:]))
+
+	_, err = q.js.PublishMsg(ctx, jsMsg)
 	if err != nil {
 		return err
 	}
